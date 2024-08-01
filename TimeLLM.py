@@ -141,7 +141,6 @@ class Model(nn.Module):
             min_values_str = str(min_values[b].tolist()[0])
             max_values_str = str(max_values[b].tolist()[0])
             median_values_str = str(medians[b].tolist()[0])
-            lags_values_str = str(lags[b].tolist())
             prompt_ = (
                 f"Task description: forecast the next {str(self.pred_len)} steps given the previous {str(self.seq_len)} steps information; "
                 "Input statistics: "
