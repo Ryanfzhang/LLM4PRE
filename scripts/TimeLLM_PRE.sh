@@ -1,13 +1,13 @@
 model_name=TimeLLM
-train_epochs=40
-learning_rate=0.005
+train_epochs=2
+learning_rate=0.001
 llama_layers=4
 
 master_port=20097
 num_process=8
-batch_size=1
+batch_size=256
 d_model=16
-d_ff=16
+d_ff=32
 
 comment='TimeLLM-PRE'
 
