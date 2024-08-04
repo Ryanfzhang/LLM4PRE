@@ -130,7 +130,7 @@ for ii in range(args.itr):
     train_data = PRE8dDataset(data_root='/home/mafzhang/data/PRE/8d/', in_len=args.seq_len, out_len=args.pred_len, missing_ratio=0.1, mode='train', index=args.nth)
     test_data = PRE8dDataset(data_root='/home/mafzhang/data/PRE/8d/', in_len=args.seq_len, out_len=args.pred_len, missing_ratio=0.1, mode='test', index=args.nth)
     train_dloader = DataLoader(train_data, args.batch_size, shuffle=True, prefetch_factor=2, num_workers=2)
-    test_dloader = DataLoader(test_data, args.batch_size, shuffle=False, prefetch_factor=2, num_workers=2)
+    test_dloader = DataLoader(test_data, args.batch_size, shuffle=True, prefetch_factor=2, num_workers=2)
 
     model = TimeLLM.Model(args).float()
 
@@ -161,8 +161,8 @@ for ii in range(args.itr):
                                             epochs=args.train_epochs,
                                             max_lr=args.learning_rate)
 
-    criterion = nn.MSELoss(reduction=None)
-    mae_metric = nn.L1Loss(reduction=None)
+    criterion = nn.MSELoss(reduction='none')
+    mae_metric = nn.L1Loss(reduction='none')
 
     train_loader, test_loader, model, model_optim, scheduler = accelerator.prepare(
         train_dloader, test_dloader, model, model_optim, scheduler)
@@ -176,7 +176,7 @@ for ii in range(args.itr):
 
         model.train()
         epoch_time = time.time()
-        for i, (batch_x, _, _, batch_y, batch_y_mask) in tqdm(enumerate(train_loader)):
+        for i, (batch_x, _, _, batch_y, batch_y_mask, _) in tqdm(enumerate(train_loader)):
             iter_count += 1
             model_optim.zero_grad()
 
@@ -219,7 +219,7 @@ for ii in range(args.itr):
                 loss = loss/batch_y_mask.sum()
                 train_loss.append(loss.item())
 
-            if (i + 1) % 100 == 0:
+            if (i + 1) % 1000 == 0:
                 accelerator.print(
                     "\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
                 speed = (time.time() - time_now) / iter_count
@@ -242,10 +242,13 @@ for ii in range(args.itr):
 
         accelerator.print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
         train_loss = np.average(train_loss)
-        test_loss, test_mae_loss = vali(args, accelerator, model, test_data, test_loader, criterion, mae_metric)
+        test_loss, test_mae_loss, loss_area1, loss_area2, loss_area3, mae_loss_area1, mae_loss_area2, mae_loss_area3 = vali(args, accelerator, model, test_data, test_loader, criterion, mae_metric)
         accelerator.print(
             "Epoch: {0} | Train Loss: {1:.7f} Test Loss: {2:.7f} MAE Loss: {3:.7f}".format(
                 epoch + 1, train_loss, test_loss, test_mae_loss))
+        accelerator.print(
+                "Epoch: {} | Test MSE Loss area1: {:.7f}, area2: {:.7f},  area3: {:.7f}, MAE Loss area1: {:.7f}, area2: {:.7f}, area3: {:.7f}".format(
+                epoch + 1, loss_area1, loss_area2, loss_area3, mae_loss_area1, mae_loss_area2, mae_loss_area3))
 
         early_stopping(test_loss, model, path)
         if early_stopping.early_stop:

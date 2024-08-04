@@ -5,9 +5,9 @@ llama_layers=4
 
 master_port=20097
 num_process=8
-batch_size=256
+batch_size=128
 d_model=16
-d_ff=32
+d_ff=16
 
 comment='TimeLLM-PRE'
 
